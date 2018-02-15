@@ -31,7 +31,7 @@ public class MeanThread {
 		int numOfThread = Integer.valueOf(args[1]);// this way, you can pass number of threads as
 		     // a second command line argument at runtime.
 
-		// TODO: partition the array list into N subArrays, where N is the number of threads
+		// TODO: partition the array listlist into N subArrays, where N is the number of threads
 
 		int sizeOfSubarray = 1048576/numOfThread;
 		int[][] arrayPartition = new int[numOfThread][sizeOfSubarray];
@@ -107,30 +107,59 @@ public class MeanThread {
 }
 
 //Extend the Thread class
-class MeanMultiThread extends Thread {
-	private int[] list;
-	private double mean;
+static class MeanMultiThread extends RecursiveAction {
+	final int[] array;
+	final int low,high;
+	double mean;
+	MeanMultiThread next;
 
-	MeanMultiThread(int[] array) {
-		int[] list = new int[array.length];
-		list = array;
-		this.list = list;
+	MeanMultiThread(int[] array, int low, int high, MeanMultiThread next) {
+		this.array = array;
+		this.low = low;
+		this.high = high;
+		this.next = next;
 	}
+
+	double computeMean(int low, int high){
+		long sum = 0;
+		for (int i = low; i < high; i++){
+			sum += array[i];
+		}
+		double mean = (double)sum/array.length;
+		return mean;
+	}
+
+	@Override
+	protected void compute(){
+		int l = low;
+		int h = high;
+		MeanMultiThread right = null;
+
+
+
+
+		int mid = array.length/2;
+		invokeAll(new MeanMultiThread(Arrays.copyOfRange(array,0,mid)),
+		          new MeanMultiThread(Arrays.copyOfRange(array,mid,array.length))
+		          );
+		merge(low,mid,high);
+	}
+
+	void merge()
+
+
 	public double getMean() {
 		return mean;
 	}
 	public void run() {
 		// TODO: implement your actions here, e.g., computeMean(...)
-		mean = computeMean(list);
+		mean = computeMean(array);
 	}
 
-	private double computeMean(int[] list){
-		long sum = 0;
-		for (int i = 0; i < list.length;i++){
-			sum += list[i];
-		}
-		double mean = (double)sum/list.length;
-		return mean;
-	}
 
 }
+
+
+
+
+
