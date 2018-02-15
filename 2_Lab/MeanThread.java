@@ -1,17 +1,26 @@
 import java.io.FileNotFoundException;
-import java.util.ArrayList;
+import java.util.stream.IntStream;
+import java.util.Arrays;
+import java.util.Scanner;
+import java.io.File;
+import java.lang.System;
+import java.lang.Runtime;
+
 
 public class MeanThread {
 	public static void main(String[] args) throws InterruptedException, FileNotFoundException {
 		// TODO: read data from external file and store it in an array
 		       // Note: you should pass the file as a first command line argument at runtime.
 
-		int[] array = int[1048576];
-
-		Scanner sc = new Scanner(new File(args[1]));
+		int[] array = new int[1048576];
+		String[] stringArray = new String[1048576];
+		Scanner sc = new Scanner(new File(args[0]));
 
 		while(sc.hasNextLine()){
-			array = sc.nextLine().split("\\s+");
+			stringArray = sc.nextLine().trim().split("\\s+");
+			array = Arrays.stream(stringArray).mapToInt(Integer::parseInt).toArray();
+
+
 		}
 
 
@@ -19,10 +28,17 @@ public class MeanThread {
 
 
 		// define number of threads
-		int NumOfThread = Integer.valueOf(args[2]);// this way, you can pass number of threads as
+		int numOfThread = Integer.valueOf(args[1]);// this way, you can pass number of threads as
 		     // a second command line argument at runtime.
-<<<<<<< HEAD
+
+		// TODO: partition the array list into N subArrays, where N is the number of threads
+
 		int sizeOfSubarray = 1048576/numOfThread;
+		int[][] arrayPartition = new int[numOfThread][sizeOfSubarray];
+
+		for (int i = 0; i < numOfThread;i++){
+			arrayPartition[i] = Arrays.copyOfRange(array, i*sizeOfSubarray, (i+1)*sizeOfSubarray);
+		}
 
 		int processorCount= Runtime.getRuntime().availableProcessors();
 		System.out.println("Number of processors: " + processorCount);
@@ -36,62 +52,26 @@ public class MeanThread {
 
 		MeanMultiThread[] arraysOfThread = new MeanMultiThread[numOfThread];
 
-		//Use Static variable to minimize cost of copying array. Partition is also not needed with static variable
-		MeanMultiThread.initializeArray(array);
-
-
 		for (int i = 0; i < numOfThread; i++){
-			arraysOfThread[i] = new MeanMultiThread(i*sizeOfSubarray,(i + 1)*sizeOfSubarray);
+			arraysOfThread[i] = new MeanMultiThread(arrayPartition[i]);
 		}
 
 		// MeanMultiThread thread1 = new MeanMultiThread(arrayPartition[0]);
 		// MeanMultiThread threadn = new MeanMultiThread(arrayPartition[1]);
 
-=======
-
-		// TODO: partition the array list into N subArrays, where N is the number of threads
-
-		// TODO: start recording time
-
-		// TODO: create N threads and assign subArrays to the threads so that each thread computes mean of
-		    // its repective subarray. For example,
-
-		MeanMultiThread thread1 = new MeanMultiThread(subArray1);
-		MeanMultiThread threadn = new MeanMultiThread(subArrayn);
->>>>>>> parent of 630f974... MeanThread not optimised
 		//Tip: you can't create big number of threads in the above way. So, create an array list of threads.
 
 		// TODO: start each thread to execute your computeMean() function defined under the run() method
 		   //so that the N mean values can be computed. for example,
-		thread1.start(); //start thread1 on from run() function
-		threadn.start();//start thread2 on from run() function
 
-<<<<<<< HEAD
-		long startThread = System.nanoTime();
 		for (int i = 0; i < numOfThread; i++){
 			arraysOfThread[i].start();
 		}
-
 
 		for (int i = 0; i < numOfThread; i++){
 			arraysOfThread[i].join();
 		}
 
-<<<<<<< HEAD
-		long endThread = System.nanoTime();
-
-		// thread1.start(); //start thread1 on from run() function
-		// threadn.start();//start thread2 on from run() function
-
-		// thread1.join();//wait until thread1 terminates
-		// threadn.join();//wait until threadn terminates
-=======
-		thread1.join();//wait until thread1 terminates
-		threadn.join();//wait until threadn terminates
->>>>>>> parent of 630f974... MeanThread not optimised
-
-=======
->>>>>>> b6443f9
 		// TODO: show the N mean values
 		System.out.println("Temporal mean value of thread n is ... ");
 
@@ -104,9 +84,7 @@ public class MeanThread {
 		System.out.println(meanString);
 
 
-<<<<<<< HEAD
 		double globalMean = 0.0;
-
 
 		for(int i = 0; i < numOfThread; i++){
 			globalMean += arraysOfThread[i].getMean();
@@ -115,71 +93,40 @@ public class MeanThread {
 		globalMean = globalMean/numOfThread;
 
 		// TODO: stop recording time and compute the elapsed time
+
 		long finish = System.nanoTime();
 
-
 		System.out.println("Time elapsed: " + (finish-start)/1000000.0 + "ms");
-		System.out.println("Time required to start the thread: " + (endThread-startThread)/1000000.0 + "ms");
 
 		System.out.println("The global mean value is ... " + globalMean);
-=======
-		// TODO: stop recording time and compute the elapsed time
-
-		System.out.println("The global mean value is ... ");
->>>>>>> parent of 630f974... MeanThread not optimised
 
 	}
 }
 
 //Extend the Thread class
 class MeanMultiThread extends Thread {
-<<<<<<< HEAD
-	private static int[] array;
-	private int low;
-	private int high;
+	private int[] list;
 	private double mean;
 
-<<<<<<< HEAD
-	public static void initializeArray(int[] inputArray){
-		array = inputArray;
-=======
-	private ArrayList<Integer> list;
-	private double mean;
-	MeanMultiThread(ArrayList<Integer> array) {
-		list = array;
->>>>>>> parent of 630f974... MeanThread not optimised
-	}
-
-	MeanMultiThread(int low, int high) {
-		this.low = low;
-		this.high = high;
-	}
-
-=======
 	MeanMultiThread(int[] array) {
 		this.list = array;
 	}
 
->>>>>>> b6443f9
 	public double getMean() {
 		return mean;
 	}
 	public void run() {
 		// TODO: implement your actions here, e.g., computeMean(...)
-		mean = computeMean(array);
+		mean = computeMean(list);
 	}
-<<<<<<< HEAD
 
-	private double computeMean(int[] array){
+	private double computeMean(int[] list){
 		long sum = 0;
-		int localSize = high - low;
-		for (int i = low; i < high;i++){
-			sum += array[i];
+		for (int i = 0; i < list.length;i++){
+			sum += list[i];
 		}
-		double mean = (double)sum/localSize;
+		double mean = (double)sum/list.length;
 		return mean;
 	}
 
-=======
->>>>>>> parent of 630f974... MeanThread not optimised
 }
