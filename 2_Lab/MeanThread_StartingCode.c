@@ -3,23 +3,38 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define SIZE	524288
+#define SIZE	1048576
 
 void *get_temporal_mean(void *params);	/* thread that computes mean values from the original array*/
 void *get_global_mean(void *params);	/* thread that computes global mean from each sub mean*/
-
 int array[SIZE] = {};
-
+FILE * file;
+int i;
 double globalMean = 0.0;                 /* final mean value for the whole array*/
 
 int main (int argc, const char * argv[])
 {
 	// TODO: read data from external file and store it in an array
-			       // Note: you should pass the file as a first command line argument at runtime.
+					 // Note: you should pass the file as a first command line argument at runtime.
+
+	file = fopen("input.txt", "r");
+	if (file) {
+			i = 0;
+			while(fscanf(file, "%d", &array[i]) == 1) {
+				i++;
+			}
+
+			i = 0;
+			while(array[i] != \0) {
+				printf("Integer %d is %d \n", i,array[i]);
+				i++;
+			}
+	}
+
 
 	// define number of threads
-    int number_of_threads = atoi(argv[2]); //this way, you can pass number of threads as 
-		     // a second command line argument at runtime. 
+    int number_of_threads = atoi(argv[2]); //this way, you can pass number of threads as
+		     // a second command line argument at runtime.
 
     // TODO: partition the array list into N sub-arrays, where N is the number of threads
 
@@ -30,12 +45,12 @@ int main (int argc, const char * argv[])
 
     // TODO: start threads by passing the sub-array they need to process and the function they execute
 	for (int i = 0; i < number_of_threads; i++) {
-		pthread_create(&workers[i], NULL, get_temporal_mean, sub-array[i]);
+		// pthread_create(&workers[i], NULL, get_temporal_mean, sub-array[i]);
 	}
 
 	/* now wait for the threads to finish */
 	for ( i = 0; i < number_of_threads; i++) {
-		pthread_join(workers[i], NULL);
+		// pthread_join(workers[i], NULL);
 	}
 
 	// TODO: printout temporal mean values computed by each thread
@@ -43,10 +58,10 @@ int main (int argc, const char * argv[])
 	// TODO: establish the final mean computing thread
 	pthread_t findMean;
 
-	pthread_create(&findMean, NULL, get_global_mean, data1);
+	// pthread_create(&findMean, NULL, get_global_mean, data1);
 
 	// wait for the final mean computing thread to finish
-	pthread_join(findMean, NULL);
+	// pthread_join(findMean, NULL);
 
 	// TODO: stop recording time and compute the elapsed time
 
