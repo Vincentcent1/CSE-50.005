@@ -45,6 +45,7 @@ public class MeanThread {
 
 		// TODO: start recording time
 
+		long start = System.nanoTime();
 
 		// TODO: create N threads and assign subArrays to the threads so that each thread computes mean of
 		    // its repective subarray. For example,
@@ -55,7 +56,6 @@ public class MeanThread {
 			arraysOfThread[i] = new MeanMultiThread(arrayPartition[i]);
 		}
 
-		long start = System.nanoTime();
 		// MeanMultiThread thread1 = new MeanMultiThread(arrayPartition[0]);
 		// MeanMultiThread threadn = new MeanMultiThread(arrayPartition[1]);
 
@@ -72,20 +72,17 @@ public class MeanThread {
 			arraysOfThread[i].join();
 		}
 
-
-		// thread1.start(); //start thread1 on from run() function
-		// threadn.start();//start thread2 on from run() function
-
-		// thread1.join();//wait until thread1 terminates
-		// threadn.join();//wait until threadn terminates
-
 		// TODO: show the N mean values
 		System.out.println("Temporal mean value of thread n is ... ");
 
-		// TODO: store the temporal mean values in a new array so that you can use that
-		    /// array to compute the global mean.
+		String meanString = "";
 
-		// TODO: compute the global mean value from N mean values.
+		for(int i = 0; i < numOfThread; i++){
+			meanString += arraysOfThread[i].getMean() + " ";
+		}
+
+		System.out.println(meanString);
+
 
 		double globalMean = 0.0;
 
@@ -112,10 +109,9 @@ class MeanMultiThread extends Thread {
 	private double mean;
 
 	MeanMultiThread(int[] array) {
-		int[] list = new int[array.length];
-		list = array;
-		this.list = list;
+		this.list = array;
 	}
+
 	public double getMean() {
 		return mean;
 	}
