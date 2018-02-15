@@ -77,6 +77,7 @@ public class MeanThread {
 			arraysOfThread[i].join();
 		}
 
+<<<<<<< HEAD
 		long endThread = System.nanoTime();
 
 		// thread1.start(); //start thread1 on from run() function
@@ -89,13 +90,19 @@ public class MeanThread {
 		threadn.join();//wait until threadn terminates
 >>>>>>> parent of 630f974... MeanThread not optimised
 
+=======
+>>>>>>> b6443f9
 		// TODO: show the N mean values
 		System.out.println("Temporal mean value of thread n is ... ");
 
-		// TODO: store the temporal mean values in a new array so that you can use that
-		    /// array to compute the global mean.
+		String meanString = "";
 
-		// TODO: compute the global mean value from N mean values.
+		for(int i = 0; i < numOfThread; i++){
+			meanString += arraysOfThread[i].getMean() + " ";
+		}
+
+		System.out.println(meanString);
+
 
 <<<<<<< HEAD
 		double globalMean = 0.0;
@@ -132,6 +139,7 @@ class MeanMultiThread extends Thread {
 	private int high;
 	private double mean;
 
+<<<<<<< HEAD
 	public static void initializeArray(int[] inputArray){
 		array = inputArray;
 =======
@@ -147,6 +155,12 @@ class MeanMultiThread extends Thread {
 		this.high = high;
 	}
 
+=======
+	MeanMultiThread(int[] array) {
+		this.list = array;
+	}
+
+>>>>>>> b6443f9
 	public double getMean() {
 		return mean;
 	}
