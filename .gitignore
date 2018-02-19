@@ -1,6 +1,8 @@
-# Word files
+# Custom ignored files
 *.docx
-
+*.pptx
+*.pdf
+*.txt
 #Zip files
 *.zip
 #Compiled files
