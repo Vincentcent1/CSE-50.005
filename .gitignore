@@ -3,6 +3,7 @@
 *.pptx
 *.pdf
 *.txt
+*.class
 #Zip files
 *.zip
 #Compiled files
