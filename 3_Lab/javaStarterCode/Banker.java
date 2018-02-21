@@ -43,7 +43,7 @@ public class Banker {
 	public void setMaximumDemand(int customerIndex, int[] maximumDemand) {
 		// TODO: add customer, update maximum and need
 		this.maximum[customerIndex] = maximumDemand;
-		this.need[customerIndex] = maximumDemand;
+		this.need[customerIndex] = maximumDemand.clone();
 	}
 
 	/**
@@ -51,33 +51,33 @@ public class Banker {
 	 */
 	public void printState() {
 		System.out.println("Current state:");
-		
+
 		// TODO: print available
 		System.out.println("Available:");
 		String[] strArr = Arrays.stream(this.available).mapToObj(String::valueOf).toArray(String[]::new);
 		String printed = String.join(" ",strArr);
 		System.out.println(printed);
-		
+
 		// TODO: print maximum
 		System.out.println("\nMaximum:");
 		for (int[] intArr : this.maximum){
 			strArr = Arrays.stream(intArr).mapToObj(String::valueOf).toArray(String[]::new);
-			printed = String.join(" ",strArr);			
+			printed = String.join(" ",strArr);
 			System.out.println(printed);
 		}
-		
+
 		// TODO: print allocation
 		System.out.println("\nAllocation:");
 		for (int[] intArr : this.allocation){
 			strArr = Arrays.stream(intArr).mapToObj(String::valueOf).toArray(String[]::new);
-			printed = String.join(" ",strArr);			
+			printed = String.join(" ",strArr);
 			System.out.println(printed);
 		}
 		// TODO: print need
 		System.out.println("\nNeed:");
 		for (int[] intArr : this.need){
 			strArr = Arrays.stream(intArr).mapToObj(String::valueOf).toArray(String[]::new);
-			printed = String.join(" ",strArr);			
+			printed = String.join(" ",strArr);
 			System.out.println(printed);
 		}
 	}
@@ -98,23 +98,28 @@ public class Banker {
 		// TODO: check if request larger than need
 		for(int i = 0; i < this.numberOfResources; i++){
 			if (request[i] > this.need[customerIndex][i]) {
+				System.out.println("Denied. Request larger than need.");
+				System.out.println("Request: " + request[i] + " Need: " + this.need[customerIndex][i]);
 				return false;
 			}
 		}
 		// TODO: check if request larger than available
 		for(int i = 0; i < this.numberOfResources; i++){
 			if (request[i] > this.available[i]) {
+				System.out.println("Denied. Request larger than available resources.");
 				return false;
 			}
 		}
 		// TODO: check if the state is safe or not
 		if(!this.checkSafe(customerIndex, request)){
-			return false; 
+			System.out.println("Denied. Request will leave system in unsafe state.");
+			return false;
 		}
 		// TODO: if it is safe, allocate the resources to customer customerNumber
 		for (int i = 0; i < this.numberOfResources; i++){
 			this.allocation[customerIndex][i] += request[i];
 			this.need[customerIndex][i] -= request[i];
+			this.available[i] -= request[i];
 		}
 		return true;
 	}
@@ -153,7 +158,50 @@ public class Banker {
 	 */
 	private synchronized boolean checkSafe(int customerIndex, int[] request) {
 		// TODO: check if the state is safe
-		
+		int[] temp_avail= new int[this.numberOfResources];
+		int[] work = new int[this.numberOfResources];
+		int[][] temp_need = new int[this.numberOfCustomers][this.numberOfResources];
+		int[][] temp_allocation = new int[this.numberOfCustomers][this.numberOfResources];
+		for (int cIndex = 0; cIndex < this.numberOfCustomers; cIndex++) {
+			temp_need[cIndex] = this.need[cIndex].clone();
+			temp_allocation[cIndex] = this.allocation[cIndex].clone();
+		}
+		boolean[] finish = new boolean[this.numberOfCustomers]; //initialised as false
+		boolean possible = true;
+
+		for (int i = 0; i < numberOfResources; i++) {
+			temp_avail[i] = this.available[i] - request[i];
+			temp_need[customerIndex][i] = temp_need[customerIndex][i] - request[i];
+			temp_allocation[customerIndex][i] = temp_allocation[customerIndex][i] + request[i];
+		}
+		work = temp_avail;
+
+		while(possible){
+			possible = false;
+			for (int cIndex = 0; cIndex < this.numberOfCustomers; cIndex++) {
+				if (!finish[cIndex]) {
+					boolean isResourceAvailable = true;
+					for (int rIndex = 0; rIndex < this.numberOfResources; rIndex++) {
+						if (temp_need[cIndex][rIndex] > work[rIndex]){
+							isResourceAvailable = false;
+							break;
+						}
+					}
+					if (isResourceAvailable) {
+						possible = true;
+						for (int rIndex = 0; rIndex < this.numberOfResources; rIndex++) {
+							work[rIndex] += temp_allocation[cIndex][rIndex];
+						}
+						finish[cIndex] = true;
+					}
+				}
+			}
+		}
+		for (int cIndex = 0; cIndex < this.numberOfCustomers; cIndex++) {
+			if (!finish[cIndex]) {
+				return false;
+			}
+		}
 		return true;
 	}
 
@@ -177,6 +225,7 @@ public class Banker {
 				n = Integer.parseInt(fileReader.readLine().split(",")[1]);
 			} catch (Exception e) {
 				System.out.println("Error parsing n on line 1.");
+				e.printStackTrace();
 				fileReader.close();
 				return;
 			}
@@ -185,6 +234,7 @@ public class Banker {
 				m = Integer.parseInt(fileReader.readLine().split(",")[1]);
 			} catch (Exception e) {
 				System.out.println("Error parsing n on line 2.");
+				e.printStackTrace();
 				fileReader.close();
 				return;
 			}
@@ -196,6 +246,7 @@ public class Banker {
 					resources[i] = Integer.parseInt(tokens[i]);
 			} catch (Exception e) {
 				System.out.println("Error parsing resources on line 3.");
+				e.printStackTrace();
 				fileReader.close();
 				return;
 			}
@@ -215,6 +266,8 @@ public class Banker {
 						theBank.setMaximumDemand(customerIndex, resources);
 					} catch (Exception e) {
 						System.out.println("Error parsing resources on line "+lineNumber+".");
+						System.out.println("Failed setting maximum demand.");
+						e.printStackTrace();
 						fileReader.close();
 						return;
 					}
@@ -228,6 +281,8 @@ public class Banker {
 						theBank.requestResources(customerIndex, resources);
 					} catch (Exception e) {
 						System.out.println("Error parsing resources on line "+lineNumber+".");
+						System.out.println("Failed requesting resources.");
+						e.printStackTrace();
 						fileReader.close();
 						return;
 					}
@@ -241,6 +296,8 @@ public class Banker {
 						theBank.releaseResources(customerIndex, resources);
 					} catch (Exception e) {
 						System.out.println("Error parsing resources on line "+lineNumber+".");
+						System.out.println("Failed releasing resources.");
+						e.printStackTrace();
 						fileReader.close();
 						return;
 					}
