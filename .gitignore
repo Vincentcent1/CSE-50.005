@@ -4,6 +4,8 @@
 *.pdf
 *.txt
 *.class
+*.[Pp][Nn][Gg]
+
 #Zip files
 *.zip
 #Compiled files
