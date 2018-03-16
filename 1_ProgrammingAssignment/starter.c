@@ -1,9 +1,16 @@
+/*Programming Assignment 1
+* Author : Vincent Setiawan
+* ID: 1002413
+* Date: 3/1/2018 */
+
 #include <stdio.h>
-#include<stdlib.h>
-#include<errno.h>
-#include<unistd.h>
-#include<string.h>
-#include<ctype.h>
+#include <stdlib.h>
+#include <errno.h>
+#include <unistd.h>
+#include <string.h>
+#include <ctype.h>
+#include <sys/wait.h>
+#include <fcntl.h>
 
 #define INELIGIBLE 0
 #define READY 1
@@ -14,6 +21,7 @@
 #define MAX_PARENTS 10
 #define MAX_CHILDREN 10
 #define MAX_NODES 50
+static int num_nodes_finished;
 
 typedef struct node {
   int id; //parsed
@@ -31,10 +39,10 @@ typedef struct node {
 } node_t;
 
 /**
- * Search for tokens in the string s, separated by the characters in 
+ * Search for tokens in the string s, separated by the characters in
  * delimiters. Populate the string array at *tokens.
  *
- * Return the number of tokens parsed on success, or -1 and set errno on 
+ * Return the number of tokens parsed on success, or -1 and set errno on
  * failure.
  */
 int parse_tokens(const char *s, const char *delimiters, char ***tokens) {
@@ -58,7 +66,7 @@ int parse_tokens(const char *s, const char *delimiters, char ***tokens) {
   /* Make a copy of s_new (strtok modifies string) */
   t = (char *) malloc(strlen(s_new) + 1);
   if (t == NULL) {
-    return -1;    
+    return -1;
   }
   strcpy(t, s_new);
 
@@ -84,7 +92,7 @@ int parse_tokens(const char *s, const char *delimiters, char ***tokens) {
     strcpy(t, s_new);
     **tokens = strtok(t, delimiters);
     for (int i=1; i<num_tokens; i++) {
-      *((*tokens) +i) = strtok(NULL, delimiters);      
+      *((*tokens) +i) = strtok(NULL, delimiters);
     }
   }
   *((*tokens) + num_tokens) = NULL;  // end with null pointer
@@ -94,11 +102,11 @@ int parse_tokens(const char *s, const char *delimiters, char ***tokens) {
 
 void free_parse_tokens(char **tokens) {
   if (tokens == NULL) {
-    return;    
+    return;
   }
-  
+
   if (*tokens != NULL) {
-    free(*tokens);    
+    free(*tokens);
   }
 
   free(tokens);
@@ -107,7 +115,7 @@ void free_parse_tokens(char **tokens) {
 /**
  * Parse the input line at line, and populate the node at node, which will
  * have id set to id.
- * 
+ *
  * Return 0 on success or -1 and set errno on failure.
  */
 int parse_input_line(char *line, int id, node_t *node) {
@@ -138,32 +146,32 @@ int parse_input_line(char *line, int id, node_t *node) {
 
   /* Set node id */
   node->id = id;
-  fprintf(stderr, "... id = %d\n", node->id);
+  //fprintf(stderr, "... id = %d\n", node->id);
 
   /* Set program name */
   strcpy(node->prog, arg_list[0]);
-  fprintf(stderr, "... prog = %s\n", node->prog);
+  //fprintf(stderr, "... prog = %s\n", node->prog);
 
   /* Set program arguments */
   for (a = 0; arg_list[a] != NULL; a++) {
     node->args[a] = arg_list[a];
     node->num_args++;
-    fprintf(stderr, "... arg[%d] = %s\n", a, node->args[a]);
+    //fprintf(stderr, "... arg[%d] = %s\n", a, node->args[a]);
   }
 
   node->args[a] = NULL;
-  fprintf(stderr, "... arg[%d] = %s\n", a, node->args[a]);
+  //fprintf(stderr, "... arg[%d] = %s\n", a, node->args[a]);
 
-  fprintf(stderr, "... num_args = %d\n", node->num_args);
+  //fprintf(stderr, "... num_args = %d\n", node->num_args);
 
   /* Set input file */
   strcpy(node->input, strings[2]);
-  fprintf(stderr, "... input = %s\n", node->input);
-  
+  //fprintf(stderr, "... input = %s\n", node->input);
+
   /* Set output file */
   strcpy(node->output, strings[3]);
-  fprintf(stderr, "... output = %s\n", node->output);
-    
+  //fprintf(stderr, "... output = %s\n", node->output);
+
   /* Set child nodes */
   node->num_children = 0;
   if (strcmp(child_list[0], "none") != 0) {
@@ -171,7 +179,7 @@ int parse_input_line(char *line, int id, node_t *node) {
       if (c < MAX_CHILDREN) {
         if (atoi(child_list[c]) != id) {
           node->children[c] = atoi(child_list[c]);
-          fprintf(stderr, "... child[%d] = %d\n", c, node->children[c]);
+          //fprintf(stderr, "... child[%d] = %d\n", c, node->children[c]);
           node->num_children++;
         } else {
           perror("Node cannot be a child of itself");
@@ -183,7 +191,7 @@ int parse_input_line(char *line, int id, node_t *node) {
       }
     }
   }
-  fprintf(stderr, "... num_children = %d\n", node->num_children);
+  //fprintf(stderr, "... num_children = %d\n", node->num_children);
   /* Set parent nodes */
   node->num_parents = 0;
 
@@ -192,7 +200,7 @@ int parse_input_line(char *line, int id, node_t *node) {
 
 /**
  * Parse the file at file_name, and populate the array at node. *node is array of node
- * 
+ *
  * Return the number of nodes parsed on success, or -1 and set errno on
  * failure.
  */
@@ -214,9 +222,10 @@ int parse_graph_file(char *file_name, node_t *nodes) {
   fprintf(stderr, "Reading file...\n");
   while (fgets(line, MAX_LENGTH, f) != NULL) {
     strtok(line, "\n");  // remove trailing newline
+    strtok(line, "\r");  // remove trailing dos newline
 
     /* Parse line */
-    fprintf(stderr, "Parsing line %d...\n", id);
+    // fprintf(stderr, "Parsing line %d...\n", id);
     if (parse_input_line(line, id, nodes) == 0) { //nodes is the address of the node
       nodes++;  // increment pointer to point to next node in array
       id++;  // increment node ID
@@ -244,8 +253,8 @@ int parse_graph_file(char *file_name, node_t *nodes) {
     perror("Error closing file");
     return -1;  // stream was not successfully closed
   }
-  
-  /* If no file closing errors, return number of nodes parsed */  
+
+  /* If no file closing errors, return number of nodes parsed */
   return id;
 }
 
@@ -254,26 +263,24 @@ int parse_graph_file(char *file_name, node_t *nodes) {
  * of each node.
  */
 int parse_node_parents(node_t *nodes, int num_nodes) {
-	int counter = 0;
-	int id = 0;
+  int counter = 0;
+  int id = 0;
 
-	while(counter < num_nodes){	
-		id = nodes[counter].id;
-		int *child_list = nodes[counter].children; //Reference to children array
-		for (int i = 0; i < nodes[counter].num_children; i++) {
-			int *parents = nodes[child_list[i]].parents; //get reference to the parents array
-			int *num_parents = &nodes[child_list[i]].num_parents; //Get pointer to the number of parents
-			parents[*num_parents] = id; //Append data to the array
-			(*num_parents)++;
-			printf("ID %d: Number of parents for id %d: %d\n",id,child_list[i],*num_parents);
-		}
-		counter++;
-	}
-	// counter = 0;
-	// while(counter < num_nodes){
-	// 	printf("1st parent of ID %d: %d\n",nodes[counter].id, nodes[counter].parents[0]);
-	// 	counter++;
-	// }
+
+  /* Loop through all the nodes*/
+  while(counter < num_nodes){
+    id = nodes[counter].id;
+    int *child_list = nodes[counter].children;
+
+    /* Loop through all children, set their parent to the current node, and increase its number of parents*/
+    for (int i = 0; i < nodes[counter].num_children; i++) {
+      int *parents = nodes[child_list[i]].parents;
+      int *num_parents = &nodes[child_list[i]].num_parents;
+      parents[*num_parents] = id;
+      (*num_parents)++;
+    }
+    counter++;
+  }
 }
 
 /**
@@ -282,63 +289,130 @@ int parse_node_parents(node_t *nodes, int num_nodes) {
  * Returns 0 if printed successfully.
  */
 int print_process_tree(node_t *nodes, int num_nodes) {
-	for(int i = 0; i < num_nodes; i++){
-		fprintf(stderr,"Process ID: %d\n", nodes->id);
-		fprintf(stderr,"...prog = %s\n", nodes->prog);
-		fprintf(stderr,"...num_args = %d\n", nodes->num_args);
-		for(int i2 = 0; i2 < nodes->num_args; i2++){
-			fprintf(stderr,"...args[%d] = %s\n", i2, nodes->args[i2]);
-		}		
-		fprintf(stderr,"...input = %s\n", nodes->input);
-		fprintf(stderr,"...output = %s\n", nodes->output);
-		fprintf(stderr,"...num_parents = %d\n",nodes->num_parents);
-		for(int i3 = 0; i3 < nodes->num_parents; i3++){
-			fprintf(stderr,"...parents[%d] = %d\n", i3, nodes->parents[i3]);
-		}
-		fprintf(stderr,"...num_children = %d\n",nodes->num_children);
-		for(int i4 = 0; i4 < nodes->num_children; i4++){
-			fprintf(stderr,"...children[%d] = %d\n", i4, nodes->children[i4]);
-		}		
-		fprintf(stderr,"...status = %d\n", nodes->status);
-		fprintf(stderr,"...pid = %d\n", nodes->pid);
-		nodes++;
-	}
-	return 0;
+
+  /* Loop through all the nodes and print all the structures*/
+  for(int i = 0; i < num_nodes; i++){
+    fprintf(stderr,"Process ID: %d\n", nodes->id);
+    fprintf(stderr,"...prog = %s\n", nodes->prog);
+    fprintf(stderr,"...num_args = %d\n", nodes->num_args);
+
+    /*Looping through all arguments */
+    for(int i2 = 0; i2 < nodes->num_args; i2++){
+      fprintf(stderr,"...args[%d] = %s\n", i2, nodes->args[i2]);
+    }
+    fprintf(stderr,"...input = %s\n", nodes->input);
+    fprintf(stderr,"...output = %s\n", nodes->output);
+    fprintf(stderr,"...num_parents = %d\n",nodes->num_parents);
+    for(int i3 = 0; i3 < nodes->num_parents; i3++){
+      fprintf(stderr,"...parents[%d] = %d\n", i3, nodes->parents[i3]);
+    }
+    fprintf(stderr,"...num_children = %d\n",nodes->num_children);
+    for(int i4 = 0; i4 < nodes->num_children; i4++){
+      fprintf(stderr,"...children[%d] = %d\n", i4, nodes->children[i4]);
+    }
+    fprintf(stderr,"...status = %d\n", nodes->status);
+    fprintf(stderr,"...pid = %d\n", nodes->pid);
+    nodes++;
+  }
+
+  return 0;
 }
 
 /**
- * Checks the status of each node in the process tree represented by nodes and 
- * verifies whether it can progress to the next stage in the cycle:
- *
- * INELIGIBLE -> READY -> RUNNING -> FINISHED
- *
- * Returns the number of nodes that have finished running, or -1 if there was 
- * an error.
+ * Check the status of one node and mark it as READY if all parents are FINISHED.
  */
-int parse_node_status(node_t *nodes, int num_nodes) {
-	int num_nodes_finished = 0;
-	return num_nodes_finished;
+int update_node_readyness(node_t *nodes, int index) {
+  node_t *localNode = &nodes[index];
+  if (localNode -> status == 0)
+  {
+    int *parents = localNode->parents;
+    for (int i = 0; i < localNode->num_parents; i++)
+    {
+      if(nodes[parents[i]].status < 3){ // Check if parents are FINISHED
+        localNode -> status == INELIGIBLE; // if not, the node are not eligible
+        return 0;
+      }
+    }
+    localNode -> status = READY; //All parents are FINISHED, node is ready.
+    // printf("Node %d is READY for execution\n",index );
+    return 0;
+  }
+  return 0;
 }
 
 /**
-Check the status of one node and mark it as READY if all parents are FINISHED.
-*/
-int update_node_readyness(node_t *nodes, int index) {
-	node_t *localNode = &nodes[index];
-	if (localNode -> status == 0)
-	{
-		int *parents = localNode->parents;
-		for (int i = 0; i < localNode->num_parents; i++)
-		{
-			if(nodes[parents[i]].status < 3){ // Check if parents are FINISHED
-				localNode -> status == INELIGIBLE; // if not, the node are not eligible
-			}
-		}
-		localNode -> status = READY; //All parents are FINISHED, node is ready.
-	}
-	return 0;
-}
+ * Function that check all the nodes and run nodes that are READY and update the status of
+ * the node to FINISHED once done.
 
+ * Returns error code on error.
+ * params:
+ * nodes: array of the nodes to be run
+ * num_nodes: Number of nodes in the array
+ */
+int run(node_t *nodes, int num_nodes) {
+  /* Loop through all nodes*/
+  for (int i = 0; i < num_nodes; i++){
+    node_t *localNode = &nodes[i];
+    update_node_readyness(nodes, i);
+
+    /* If node is READY, update it to RUNNING and run the node*/
+    if (localNode->status == 1){
+      localNode->status = 2;
+      pid_t pid = fork();
+
+      /* Child process*/
+      if (pid == 0){
+        int fout = 1;
+        int fin = 0;
+
+        /* Check if input needs redirection from a file*/
+        if (strcmp(localNode->input, "stdin") != 0){
+          fin = open(localNode->input, O_RDONLY);
+          char error[80];
+          sprintf(error, "Error opening input file \'%s\' on node %d", localNode->input, localNode->id);
+          if(fin < 0) {perror(error); return 1;}
+          if(dup2(fin, STDIN_FILENO) < 0) {printf("Error dupping file"); return 1;}
+        }
+
+        /* Check if output needs redirection to a file*/
+        if (strcmp(localNode->output, "stdout") != 0) {
+          fout = open(localNode->output, O_APPEND | O_WRONLY | O_CREAT);
+          if(fout < 0) {printf("Error opening output file %s\n",localNode->output); return 1;}
+          if(dup2(fout,STDOUT_FILENO) < 0)    return 1;
+          //Now we redirect standard output to the file using dup2
+        }
+
+        /*Run the node*/
+        if (execvp(localNode->prog, localNode->args) < 0 ) {
+          perror("Execvp failed");
+          exit(1);
+        } else {
+          // printf("executing process %d\n",i);
+          close(fout);
+          close(fin);
+        }
+
+      }
+
+      /* Parent process*/
+      else if (pid > 0){
+        localNode->pid = pid;
+        // printf("executing process %d\n",i);
+        return 0;
+      }
+    } else if(localNode->status == 2){
+
+      /*If node is RUNNING, check if it's done and update it to FINISHED accordingly*/
+      int status;
+      if (waitpid(localNode->pid, &status, WNOHANG) != 0) {
+          localNode->status = 3;
+          num_nodes_finished++;
+          printf("Node %d FINISHED executing\n",i);
+      }
+    }
+  }
+  return 0;
+}
 
 /**
  * Takes in a graph file and executes the programs in parallel.
@@ -346,36 +420,35 @@ int update_node_readyness(node_t *nodes, int index) {
 int main(int argc, char *argv[]) {
   node_t nodes[MAX_NODES];
   int num_nodes;
-  int num_nodes_finished;
 
   /* Check command line arguments */
   char *file_name = argv[1];
 
-  /* INSERT CODE */
-
   /* Parse graph file */
   fprintf(stderr, "Parsing graph file...\n");
-  /* INSERT CODE - invocation to parse_graph_file */
   num_nodes = parse_graph_file(file_name,nodes);
   printf("Number of nodes: %d\n", num_nodes);
 
   /* Parse nodes for parents */
   fprintf(stderr, "Parsing node parents...\n");
-  /* INSERT CODE - invocation to parse_node_parents */
   parse_node_parents(nodes, num_nodes);
 
   /* Print process tree */
-  fprintf(stderr, "\nProcess tree:\n");
-  print_process_tree(nodes,num_nodes);
+  // fprintf(stderr, "\nProcess tree:\n");
+  // print_process_tree(nodes,num_nodes);
 
-  /* INSERT CODE  - print the process tree */
 
   /* Run processes */
   fprintf(stderr, "Running processes...\n");
+  /* Keep looping until all nodes are finished*/
+  while(num_nodes_finished < num_nodes){
+    if(run(nodes, num_nodes) != 0){
+      /* On error, terminate that node*/
+      perror("Error detected, process terminated.");
+      exit(1);
+    }
+  }
 
-  /* INSERT CODE  - invocation to parse_node_status */
-  num_nodes_finished = parse_node_status(nodes,num_nodes);
-  
   if (num_nodes_finished < 0) {
     perror("Error executing processes");
     return EXIT_FAILURE;
